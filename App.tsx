@@ -239,8 +239,8 @@ const App: React.FC = () => {
             <Bug size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-800 tracking-tight leading-none">EntoLabeller</h1>
-            <p className="text-[10px] text-slate-500 font-medium">AI-Powered Specimen Label Transcription</p>
+            <h1 className="text-lg font-bold text-slate-800 tracking-tight leading-none">Chrysalis</h1>
+            <p className="text-[10px] text-slate-500 font-medium">Transforming specimen labels to digital data</p>
           </div>
         </div>
 
