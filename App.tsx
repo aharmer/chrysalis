@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, Settings, Play, Download, Trash2, AlertCircle, CheckCircle2, Loader2, Bug, Thermometer, FileText, RefreshCw, CheckSquare, Square, Search } from 'lucide-react';
+import { Upload, Settings, Play, Download, Trash2, AlertCircle, CheckCircle2, Loader2, ScanText, Thermometer, FileText, RefreshCw, CheckSquare, Square, Search } from 'lucide-react';
 import { EntomologicalData, SpecimenRecord, ProcessingStats } from './types';
 import { DEFAULT_ENTOMOLOGY_PROMPT } from './constants';
 import { processSpecimenImage, fileToBase64 } from './services/geminiService';
@@ -236,7 +236,7 @@ const App: React.FC = () => {
       <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0 z-20 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="bg-blue-600 p-1.5 rounded-lg text-white shadow-blue-200">
-            <Bug size={20} />
+            <ScanText size={20} />
           </div>
           <div>
             <h1 className="text-lg font-bold text-slate-800 tracking-tight leading-none">Chrysalis</h1>
@@ -448,7 +448,7 @@ const App: React.FC = () => {
                 />
              ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
-                    <Bug size={64} className="mb-4 opacity-10" />
+                    <ScanText size={64} className="mb-4 opacity-10" />
                     <p className="text-lg font-medium text-slate-500">Select a record</p>
                     <p className="text-sm">Click on an item from the list to view and edit details</p>
                 </div>
