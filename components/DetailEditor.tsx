@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SpecimenRecord, EntomologicalData } from '../types';
-import { ZoomIn, ZoomOut, Save, ChevronLeft, ChevronRight, CheckSquare, Square, Check, AlertCircle } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCw, ChevronLeft, ChevronRight, CheckSquare, Square, Check, AlertCircle } from 'lucide-react';
 
 interface DetailEditorProps {
   record: SpecimenRecord;
@@ -20,16 +20,43 @@ export const DetailEditor: React.FC<DetailEditorProps> = ({
 }) => {
   const [formData, setFormData] = useState<EntomologicalData>(record.data);
   const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [startPan, setStartPan] = useState({ x: 0, y: 0 });
+  
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Sync internal state when record prop changes (i.e. user selected a new row)
   useEffect(() => {
     setFormData(record.data);
     setZoom(1);
+    setRotation(0);
     setPan({ x: 0, y: 0 });
   }, [record.id, record.data]); // Depend on ID to reset view
+
+  // Handle Wheel Zooming
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Prevent the whole page or right sidebar from scrolling
+      e.preventDefault();
+      
+      const delta = e.deltaY;
+      // Sensitivity factor - smaller is smoother
+      const zoomFactor = 0.0015;
+      
+      setZoom(prev => {
+        const nextZoom = prev - delta * zoomFactor;
+        return Math.min(Math.max(nextZoom, 0.5), 5);
+      });
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
 
   const handleNavigation = (direction: 'prev' | 'next') => {
     // Save current changes first (and keep reviewed status as is, unless explicitly toggled elsewhere)
@@ -82,6 +109,10 @@ export const DetailEditor: React.FC<DetailEditorProps> = ({
   };
 
   const handleMouseUp = () => setIsDragging(false);
+
+  const handleRotate = () => {
+    setRotation(prev => (prev + 90) % 360);
+  };
 
   // Group fields for better layout
   const fieldGroups = [
@@ -142,11 +173,15 @@ export const DetailEditor: React.FC<DetailEditorProps> = ({
       <div className="flex flex-1 overflow-hidden">
         
         {/* Left: Image Viewer (50% on desktop) */}
-        <div className="w-1/2 bg-slate-100 relative overflow-hidden flex items-center justify-center border-r border-slate-200 group">
+        <div 
+          ref={containerRef}
+          className="w-1/2 bg-slate-100 relative overflow-hidden flex items-center justify-center border-r border-slate-200 group"
+        >
           <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 bg-white/90 p-1.5 rounded-lg shadow-sm backdrop-blur opacity-50 group-hover:opacity-100 transition-opacity">
               <button onClick={() => setZoom(z => Math.min(z + 0.5, 5))} className="p-1.5 hover:bg-slate-200 rounded" title="Zoom In"><ZoomIn size={18}/></button>
               <button onClick={() => setZoom(z => Math.max(z - 0.5, 0.5))} className="p-1.5 hover:bg-slate-200 rounded" title="Zoom Out"><ZoomOut size={18}/></button>
-              <button onClick={() => {setZoom(1); setPan({x:0, y:0})}} className="text-[10px] font-bold p-1.5 hover:bg-slate-200 rounded" title="Reset View">RST</button>
+              <button onClick={handleRotate} className="p-1.5 hover:bg-slate-200 rounded" title="Rotate 90°"><RotateCw size={18}/></button>
+              <button onClick={() => {setZoom(1); setRotation(0); setPan({x:0, y:0})}} className="text-[10px] font-bold p-1.5 hover:bg-slate-200 rounded" title="Reset View">RST</button>
           </div>
           
           {record.status === 'processing' && (
@@ -177,7 +212,7 @@ export const DetailEditor: React.FC<DetailEditorProps> = ({
                   src={record.imageUrl} 
                   alt="Specimen" 
                   style={{ 
-                      transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                      transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotation}deg)`,
                       transition: isDragging ? 'none' : 'transform 0.2s'
                   }}
                   className="max-w-[95%] max-h-[95%] object-contain select-none shadow-xl"
