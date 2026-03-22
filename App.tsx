@@ -1,14 +1,17 @@
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, Settings, Play, Download, Trash2, AlertCircle, CheckCircle2, Loader2, ScanText, Thermometer, FileText, RefreshCw, CheckSquare, Square, Search } from 'lucide-react';
 import { EntomologicalData, SpecimenRecord, ProcessingStats } from './types';
 import { DEFAULT_ENTOMOLOGY_PROMPT } from './constants';
 import { processSpecimenImage, fileToBase64 } from './services/geminiService';
-import { ApiKeyModal } from './components/ApiKeyModal';
-import { DetailEditor } from './components/DetailEditor';
+import { ApiKeyModal } from './src/components/ApiKeyModal';
+import { DetailEditor } from './src/components/DetailEditor';
+import { DisclaimerModal } from './src/components/DisclaimerModal';
 
 const App: React.FC = () => {
-  const [apiKey, setApiKey] = useState<string>('');
-  const [showKeyModal, setShowKeyModal] = useState<boolean>(true);
+  const [apiKey, setApiKey] = useState<string>(localStorage.getItem('gemini_api_key') || '');
+  const [showKeyModal, setShowKeyModal] = useState<boolean>(!localStorage.getItem('gemini_api_key'));
+  const [showDisclaimer, setShowDisclaimer] = useState<boolean>(!localStorage.getItem('chrysalis_disclaimer_accepted'));
   const [prompt, setPrompt] = useState<string>(DEFAULT_ENTOMOLOGY_PROMPT);
   const [temperature, setTemperature] = useState<number>(0.2);
   const [showPromptSettings, setShowPromptSettings] = useState<boolean>(false);
@@ -28,7 +31,7 @@ const App: React.FC = () => {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
-      const newFiles = Array.from(event.target.files);
+      const newFiles = Array.from(event.target.files) as File[];
       const newRecords: SpecimenRecord[] = [];
 
       for (const file of newFiles) {
@@ -124,6 +127,17 @@ const App: React.FC = () => {
     if (record) {
         runProcessing([record]);
     }
+  };
+
+  const handleSaveApiKey = (key: string) => {
+    setApiKey(key);
+    localStorage.setItem('gemini_api_key', key);
+    setShowKeyModal(false);
+  };
+
+  const handleAcceptDisclaimer = () => {
+    localStorage.setItem('chrysalis_disclaimer_accepted', 'true');
+    setShowDisclaimer(false);
   };
 
   const handleExportCsv = () => {
@@ -230,7 +244,8 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
-      <ApiKeyModal isOpen={showKeyModal} onSave={(key) => { setApiKey(key); setShowKeyModal(false); }} />
+      <DisclaimerModal isOpen={showDisclaimer} onAccept={handleAcceptDisclaimer} />
+      <ApiKeyModal isOpen={!showDisclaimer && showKeyModal} onSave={handleSaveApiKey} />
       
       {/* Navbar */}
       <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0 z-20 shadow-sm">

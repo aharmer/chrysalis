@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { SpecimenRecord, EntomologicalData } from '../types';
 import { ZoomIn, ZoomOut, RotateCw, ChevronLeft, ChevronRight, CheckSquare, Square, Check, AlertCircle } from 'lucide-react';

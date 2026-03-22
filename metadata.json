@@ -1,5 +1,5 @@
 {
-  "name": "EntoLabeller",
-  "description": "A specialized tool for entomologists to digitize specimen labels. It combines OCR and entity parsing into a single step using Gemini Vision, allowing users to upload batch images, verify extracted data side-by-side, and export to CSV.",
+  "name": "Chrysalis",
+  "description": "Transforming specimen labels to digital data using AI-powered OCR and entity parsing.",
   "requestFramePermissions": []
 }
