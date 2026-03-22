@@ -4,9 +4,9 @@ import { Upload, Settings, Play, Download, Trash2, AlertCircle, CheckCircle2, Lo
 import { EntomologicalData, SpecimenRecord, ProcessingStats } from './types';
 import { DEFAULT_ENTOMOLOGY_PROMPT } from './constants';
 import { processSpecimenImage, fileToBase64 } from './services/geminiService';
-import { ApiKeyModal } from './src/components/ApiKeyModal';
-import { DetailEditor } from './src/components/DetailEditor';
-import { DisclaimerModal } from './src/components/DisclaimerModal';
+import { ApiKeyModal } from './components/ApiKeyModal';
+import { DetailEditor } from './components/DetailEditor';
+import { DisclaimerModal } from './components/DisclaimerModal';
 
 const App: React.FC = () => {
   const [apiKey, setApiKey] = useState<string>(localStorage.getItem('gemini_api_key') || '');

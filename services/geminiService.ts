@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { EntomologicalData } from "../types";
 
@@ -22,7 +23,7 @@ const entomoSchema: Schema = {
     determiner: { type: Type.STRING },
     notes: { type: Type.STRING },
   },
-  required: ["raw_ocr_text", "locality", "collector"], // lenient requirements
+  required: ["raw_ocr_text", "locality", "collector"], 
 };
 
 export const processSpecimenImage = async (
@@ -30,14 +31,13 @@ export const processSpecimenImage = async (
   base64Image: string,
   prompt: string,
   modelName: string = "gemini-2.5-flash",
-  temperature: number = 0.2
+  temperature: number = 0.1
 ): Promise<EntomologicalData> => {
-  if (!apiKey) throw new Error("API Key is missing");
-
-  const client = new GoogleGenAI({ apiKey });
+  // Use the provided API key
+  const ai = new GoogleGenAI({ apiKey });
 
   try {
-    const response = await client.models.generateContent({
+    const response = await ai.models.generateContent({
       model: modelName,
       contents: {
         parts: [
@@ -70,6 +70,10 @@ export const processSpecimenImage = async (
     }
   } catch (error: any) {
     console.error("Gemini API Error:", error);
+    // Handle the specific error mentioned in rules
+    if (error.message?.includes("Requested entity was not found")) {
+      throw new Error("API configuration error or model unavailable. Please check project billing.");
+    }
     throw new Error(error.message || "Unknown error processing image");
   }
 };
@@ -80,7 +84,6 @@ export const fileToBase64 = (file: File): Promise<string> => {
     reader.readAsDataURL(file);
     reader.onload = () => {
       const result = reader.result as string;
-      // Remove data URL prefix (e.g., "data:image/jpeg;base64,")
       const base64 = result.split(",")[1];
       resolve(base64);
     };
