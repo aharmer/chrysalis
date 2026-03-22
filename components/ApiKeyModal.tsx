@@ -22,8 +22,8 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onSave }) => {
         </div>
         
         <p className="text-slate-600 mb-6 leading-relaxed">
-          This app runs entirely in your browser. To process images, we need a Google Gemini API key. 
-          This replaces the need for separate Google Vision and OpenRouter keys.
+          This app runs entirely in your browser. To process images, you need a Google Gemini API key. 
+          There is a free tier available for processing small amounts of data, but if you plan to use this tool for processing large numbers of images you will need to set up billing.
         </p>
 
         <label className="block text-sm font-semibold text-slate-700 mb-2">
