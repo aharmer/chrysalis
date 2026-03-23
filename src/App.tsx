@@ -3,7 +3,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, Settings, Play, Download, Trash2, AlertCircle, CheckCircle2, Loader2, ScanText, Thermometer, FileText, RefreshCw, CheckSquare, Square, Search } from 'lucide-react';
 import { EntomologicalData, SpecimenRecord, ProcessingStats } from './types';
 import { DEFAULT_ENTOMOLOGY_PROMPT } from './constants';
-import { processSpecimenImage, fileToBase64 } from './services/gemini-service';
+import { processSpecimenImage, fileToBase64 } from './services/geminiService';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { DetailEditor } from './components/DetailEditor';
 import { DisclaimerModal } from './components/DisclaimerModal';
