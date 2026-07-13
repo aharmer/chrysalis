@@ -1,5 +1,6 @@
 {
   "name": "Chrysalis",
   "description": "Transforming specimen labels to digital data using AI-powered OCR and entity parsing.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

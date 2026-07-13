@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Save, ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Copy, ExternalLink, MapPin, Calendar, User, Globe, Hash, Info, Tag, Layers, Microscope, FileText, ZoomIn, ZoomOut, RotateCw, Maximize, RefreshCw } from 'lucide-react';
-import { SpecimenRecord, EntomologicalData } from '../types';
+import { SpecimenRecord, EntomologicalData } from '@/types';
 
 interface DetailEditorProps {
   record: SpecimenRecord;
@@ -255,6 +255,35 @@ export const DetailEditor: React.FC<DetailEditorProps> = ({ record, onClose, onS
             {/* Form Sections */}
             <div className="grid grid-cols-2 gap-6">
               
+              {/* Specimen Identifier Section */}
+              <div className="col-span-full space-y-4">
+                 <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                    <div className="w-6 h-6 bg-purple-50 rounded flex items-center justify-center text-purple-600">
+                        <Tag size={14} />
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Specimen Identifier</h3>
+                 </div>
+                 <div className="grid grid-cols-1 gap-4">
+                    {renderField("Accession / Database Number", "accession_number", <Hash size={12} />, "e.g. NZAC03028810 (Initially filled from filename, otherwise OCR/manual entry)", true)}
+                 </div>
+              </div>
+
+              {/* Taxonomy Section */}
+              <div className="col-span-full space-y-4">
+                 <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                    <div className="w-6 h-6 bg-emerald-50 rounded flex items-center justify-center text-emerald-600">
+                        <Microscope size={14} />
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Taxonomy & Classification</h3>
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    {renderField("Order", "order", <Microscope size={12} />, "e.g. Lepidoptera")}
+                    {renderField("Family", "family", <Microscope size={12} />, "e.g. Geometridae")}
+                    {renderField("Genus", "genus", <Microscope size={12} />, "e.g. Declana")}
+                    {renderField("Species (Specific Epithet)", "species", <Microscope size={12} />, "e.g. floccosa")}
+                 </div>
+              </div>
+
               {/* Locality Section */}
               <div className="col-span-full space-y-4">
                  <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
@@ -274,7 +303,8 @@ export const DetailEditor: React.FC<DetailEditorProps> = ({ record, onClose, onS
                  <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                     {renderField("Latitude", "decimal_latitude", <Hash size={12} />, "-36.1234")}
                     {renderField("Longitude", "decimal_longitude", <Hash size={12} />, "174.1234")}
-                    {renderField("Geocode Method", "geocode_method", <Info size={12} />, "AI-estimated", true)}
+                    {renderField("Geocode Method", "geocode_method", <Info size={12} />, "AI-estimated")}
+                    {renderField("Coordinate Uncertainty (m)", "coordinate_uncertainty_in_meters", <Layers size={12} />, "e.g. 1000")}
                  </div>
               </div>
 

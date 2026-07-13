@@ -1,16 +1,31 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, Settings, Play, Download, Trash2, AlertCircle, CheckCircle2, Loader2, ScanText, Thermometer, FileText, RefreshCw, CheckSquare, Square, Search } from 'lucide-react';
-import { EntomologicalData, SpecimenRecord, ProcessingStats } from './types';
-import { DEFAULT_ENTOMOLOGY_PROMPT } from './constants';
-import { processSpecimenImage, fileToBase64 } from './services/geminiService';
-import { ApiKeyModal } from './components/ApiKeyModal';
-import { DetailEditor } from './components/DetailEditor';
-import { DisclaimerModal } from './components/DisclaimerModal';
+import { Upload, Settings, Play, Download, Trash2, AlertCircle, CheckCircle2, Loader2, ScanText, Thermometer, FileText, RefreshCw, CheckSquare, Square, Search, Microscope, Github } from 'lucide-react';
+import { EntomologicalData, SpecimenRecord, ProcessingStats } from '@/types';
+import { DEFAULT_ENTOMOLOGY_PROMPT } from '@/constants';
+import { processSpecimenImage, fileToBase64 } from '@/services/gemini_api';
+import { DetailEditor } from '@/components/DetailEditor';
+import { DisclaimerModal } from '@/components/DisclaimerModal';
+import { ApiKeyModal } from '@/components/ApiKeyModal';
+
+const extractAccessionFromFilename = (filename: string): string => {
+  const nameWithoutExt = filename.split('.').slice(0, -1).join('.');
+  
+  // Robust pattern matching:
+  // Match 2 to 8 letters followed by an optional separator (space, hyphen, underscore) and 3 to 12 digits.
+  // We match starting either at the beginning of the filename or following a non-alphanumeric character,
+  // and ending either at the end of the filename or before a non-alphanumeric character (avoiding word boundary issues with underscores).
+  const match = nameWithoutExt.match(/(?:^|[^A-Za-z0-9])([A-Za-z]{2,8})[-_\s]*(\d{3,12})(?![A-Za-z0-9])/);
+  if (match) {
+    return `${match[1].toUpperCase()}${match[2]}`;
+  }
+  
+  return '';
+};
 
 const App: React.FC = () => {
   const [apiKey, setApiKey] = useState<string>(localStorage.getItem('gemini_api_key') || '');
-  const [showKeyModal, setShowKeyModal] = useState<boolean>(!localStorage.getItem('gemini_api_key'));
+  const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
   const [showDisclaimer, setShowDisclaimer] = useState<boolean>(!localStorage.getItem('chrysalis_disclaimer_accepted'));
   const [prompt, setPrompt] = useState<string>(DEFAULT_ENTOMOLOGY_PROMPT);
   const [temperature, setTemperature] = useState<number>(0.2);
@@ -18,6 +33,13 @@ const App: React.FC = () => {
   const [records, setRecords] = useState<SpecimenRecord[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [showBulkTaxonomy, setShowBulkTaxonomy] = useState<boolean>(false);
+  const [bulkTaxonomy, setBulkTaxonomy] = useState({
+    order: '',
+    family: '',
+    genus: '',
+    species: ''
+  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -45,6 +67,7 @@ const App: React.FC = () => {
           status: 'pending',
           reviewed: false,
           data: {
+            accession_number: extractAccessionFromFilename(file.name),
             raw_ocr_text: '',
             collection_date: '',
             collection_date_end: '',
@@ -56,10 +79,15 @@ const App: React.FC = () => {
             decimal_latitude: '',
             decimal_longitude: '',
             geocode_method: '',
+            coordinate_uncertainty_in_meters: '',
             altitude: '',
             habitat: '',
             method: '',
             determiner: '',
+            order: '',
+            family: '',
+            genus: '',
+            species: '',
             notes: ''
           }
         });
@@ -74,9 +102,10 @@ const App: React.FC = () => {
 
   const runProcessing = useCallback(async (recordsToProcess: SpecimenRecord[]) => {
     if (isProcessing || recordsToProcess.length === 0) return;
+
     if (!apiKey) {
-        setShowKeyModal(true);
-        return;
+      setShowKeyModal(true);
+      return;
     }
 
     setIsProcessing(true);
@@ -90,13 +119,23 @@ const App: React.FC = () => {
         const file = new File([blob], record.filename, { type: blob.type });
         const base64 = await fileToBase64(file);
 
-        const result = await processSpecimenImage(apiKey, base64, prompt, "gemini-2.5-flash", temperature);
+        const result = await processSpecimenImage(apiKey, base64, prompt, "gemini-3.5-flash", temperature);
 
-        setRecords(prev => prev.map(r => r.id === record.id ? { 
-            ...r, 
-            status: 'success', 
-            data: result 
-        } : r));
+        setRecords(prev => prev.map(r => {
+          if (r.id === record.id) {
+            // Keep filename accession_number if it exists, otherwise fall back to OCR
+            const accession = r.data.accession_number || result.accession_number || '';
+            return {
+              ...r,
+              status: 'success',
+              data: {
+                ...result,
+                accession_number: accession
+              }
+            };
+          }
+          return r;
+        }));
 
       } catch (error: any) {
         setRecords(prev => prev.map(r => r.id === record.id ? { 
@@ -129,15 +168,15 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAcceptDisclaimer = () => {
+    localStorage.setItem('chrysalis_disclaimer_accepted', 'true');
+    setShowDisclaimer(false);
+  };
+
   const handleSaveApiKey = (key: string) => {
     setApiKey(key);
     localStorage.setItem('gemini_api_key', key);
     setShowKeyModal(false);
-  };
-
-  const handleAcceptDisclaimer = () => {
-    localStorage.setItem('chrysalis_disclaimer_accepted', 'true');
-    setShowDisclaimer(false);
   };
 
   const handleExportCsv = () => {
@@ -160,10 +199,15 @@ const App: React.FC = () => {
       'decimal_latitude',
       'decimal_longitude',
       'geocode_method',
+      'coordinate_uncertainty_in_meters',
       'altitude',
       'habitat',
       'method',
       'determiner',
+      'order',
+      'family',
+      'genus',
+      'species',
       'notes'
     ];
     
@@ -180,19 +224,19 @@ const App: React.FC = () => {
 
     const rows = records.map(r => {
       // Prepare the flat data object
-      const accession = getAccession(r.filename);
       const rowData: Record<string, string> = {
-        accession_number: accession,
+        ...r.data,
+        accession_number: r.data.accession_number || getAccession(r.filename),
         filename: r.filename,
         status: r.status,
         reviewed: r.reviewed ? 'Yes' : 'No',
-        ...r.data
       };
 
-      // Map strict columns to values, escaping quotes
+      // Map strict columns to values, escaping quotes and replacing newlines with spaces to prevent breaking line-by-line parsers
       return EXPORT_COLUMNS.map(col => {
         const val = rowData[col] || '';
-        return `"${String(val).replace(/"/g, '""')}"`;
+        const safeVal = String(val).replace(/\r?\n/g, ' ');
+        return `"${safeVal.replace(/"/g, '""')}"`;
       }).join(',');
     });
     
@@ -215,6 +259,21 @@ const App: React.FC = () => {
         data: newData,
         reviewed: reviewed !== undefined ? reviewed : r.reviewed 
     } : r));
+  };
+
+  const handleApplyBulkTaxonomy = () => {
+    setRecords(prev => prev.map(r => ({
+      ...r,
+      data: {
+        ...r.data,
+        order: bulkTaxonomy.order.trim() !== '' ? bulkTaxonomy.order.trim() : r.data.order,
+        family: bulkTaxonomy.family.trim() !== '' ? bulkTaxonomy.family.trim() : r.data.family,
+        genus: bulkTaxonomy.genus.trim() !== '' ? bulkTaxonomy.genus.trim() : r.data.genus,
+        species: bulkTaxonomy.species.trim() !== '' ? bulkTaxonomy.species.trim() : r.data.species,
+      }
+    })));
+    // Keep values in inputs but close the section to confirm application
+    setShowBulkTaxonomy(false);
   };
 
   const handleDeleteRecord = (id: string, e?: React.MouseEvent) => {
@@ -245,7 +304,7 @@ const App: React.FC = () => {
   return (
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
       <DisclaimerModal isOpen={showDisclaimer} onAccept={handleAcceptDisclaimer} />
-      <ApiKeyModal isOpen={!showDisclaimer && showKeyModal} onSave={handleSaveApiKey} />
+      <ApiKeyModal isOpen={showKeyModal} onSave={handleSaveApiKey} onClose={() => setShowKeyModal(false)} currentKey={apiKey} />
       
       {/* Navbar */}
       <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0 z-20 shadow-sm">
@@ -268,18 +327,20 @@ const App: React.FC = () => {
            </div>
 
           <button 
+            onClick={() => setShowKeyModal(true)}
+            className={`text-xs font-mono px-2.5 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 ${apiKey ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 animate-pulse'}`}
+            title="Configure Gemini API Key"
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${apiKey ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+            {apiKey ? 'API Key Active' : 'Set API Key'}
+          </button>
+
+          <button 
             onClick={() => setShowPromptSettings(!showPromptSettings)}
             className={`p-1.5 rounded-lg transition-all flex items-center gap-2 ${showPromptSettings ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}
             title="Settings"
           >
             <Settings size={18} />
-          </button>
-          
-          <button 
-            onClick={() => setShowKeyModal(true)}
-            className={`text-xs font-mono px-2 py-1 rounded transition-colors ${apiKey ? 'bg-slate-100 text-slate-600' : 'bg-red-100 text-red-600 animate-pulse'}`}
-          >
-            {apiKey ? 'API Key Configured' : 'Set API Key'}
           </button>
         </div>
       </header>
@@ -374,6 +435,88 @@ const App: React.FC = () => {
                         <Download size={14} /> Export
                     </button>
                  </div>
+
+                 <button 
+                    onClick={() => setShowBulkTaxonomy(!showBulkTaxonomy)}
+                    disabled={records.length === 0}
+                    className={`w-full mt-1.5 flex items-center justify-center gap-2 px-2 py-1.5 border rounded-lg text-xs font-bold transition-all shadow-sm ${
+                        showBulkTaxonomy 
+                            ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100' 
+                            : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
+                    }`}
+                 >
+                    <Microscope size={14} /> 
+                    {showBulkTaxonomy ? 'Hide Bulk Taxonomy' : 'Apply Bulk Taxonomy'}
+                 </button>
+
+                 {showBulkTaxonomy && (
+                     <div className="w-full mt-2 p-3 bg-purple-50/50 border border-purple-100 rounded-lg space-y-2.5 animate-in slide-in-from-top-2 duration-150">
+                         <div className="flex items-center gap-1.5 text-purple-800">
+                             <Microscope size={14} />
+                             <span className="text-[11px] font-bold uppercase tracking-wider">Bulk Classification</span>
+                         </div>
+                         <p className="text-[10px] text-slate-500 leading-relaxed">
+                             Fill fields below and apply to batch set them across all specimens in this run. Leaving a field blank leaves that property unmodified.
+                         </p>
+                         <div className="grid grid-cols-2 gap-2">
+                             <div className="space-y-1">
+                                 <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Order</label>
+                                 <input 
+                                     type="text" 
+                                     value={bulkTaxonomy.order} 
+                                     onChange={(e) => setBulkTaxonomy(p => ({ ...p, order: e.target.value }))}
+                                     placeholder="e.g. Lepidoptera"
+                                     className="w-full px-2 py-1 text-xs bg-white border border-slate-200 rounded outline-none focus:border-purple-400"
+                                 />
+                             </div>
+                             <div className="space-y-1">
+                                 <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Family</label>
+                                 <input 
+                                     type="text" 
+                                     value={bulkTaxonomy.family} 
+                                     onChange={(e) => setBulkTaxonomy(p => ({ ...p, family: e.target.value }))}
+                                     placeholder="e.g. Geometridae"
+                                     className="w-full px-2 py-1 text-xs bg-white border border-slate-200 rounded outline-none focus:border-purple-400"
+                                 />
+                             </div>
+                             <div className="space-y-1">
+                                 <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Genus</label>
+                                 <input 
+                                     type="text" 
+                                     value={bulkTaxonomy.genus} 
+                                     onChange={(e) => setBulkTaxonomy(p => ({ ...p, genus: e.target.value }))}
+                                     placeholder="e.g. Declana"
+                                     className="w-full px-2 py-1 text-xs bg-white border border-slate-200 rounded outline-none focus:border-purple-400"
+                                 />
+                             </div>
+                             <div className="space-y-1">
+                                 <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Species</label>
+                                 <input 
+                                     type="text" 
+                                     value={bulkTaxonomy.species} 
+                                     onChange={(e) => setBulkTaxonomy(p => ({ ...p, species: e.target.value }))}
+                                     placeholder="e.g. floccosa"
+                                     className="w-full px-2 py-1 text-xs bg-white border border-slate-200 rounded outline-none focus:border-purple-400"
+                                 />
+                             </div>
+                         </div>
+                         <div className="flex gap-2 pt-1">
+                             <button 
+                                 onClick={handleApplyBulkTaxonomy}
+                                 className="flex-1 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-[11px] font-bold transition-all shadow-sm"
+                             >
+                                 Apply to All
+                             </button>
+                             <button 
+                                 onClick={() => setBulkTaxonomy({ order: '', family: '', genus: '', species: '' })}
+                                 className="px-2 py-1.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded text-[11px] font-medium"
+                                 title="Clear fields"
+                             >
+                                 Clear
+                             </button>
+                         </div>
+                     </div>
+                 )}
             </div>
 
             {/* List */}
@@ -447,6 +590,29 @@ const App: React.FC = () => {
                         </div>
                     </div>
                 ))}
+            </div>
+
+            {/* Sidebar Footer with GitHub Link and License info */}
+            <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-medium shrink-0">
+              <a 
+                href="https://github.com/aharmer/chrysalis" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="flex items-center gap-1.5 hover:text-blue-600 transition-colors"
+                id="footer-github-link"
+              >
+                <Github size={14} /> 
+                <span>GitHub Repository</span>
+              </a>
+              <div 
+                className="group relative cursor-help flex items-center gap-1 text-slate-400 hover:text-slate-600 transition-colors"
+                id="footer-license-info"
+              >
+                <span>GPL v3.0 License</span>
+                <div className="absolute bottom-full right-0 mb-2 w-56 p-2.5 bg-slate-800 text-white text-[10px] rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 leading-normal font-normal">
+                  Chrysalis is open-source software licensed under the GNU General Public License v3.0. Feel free to copy, modify, and redistribute!
+                </div>
+              </div>
             </div>
         </div>
 

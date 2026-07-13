@@ -1,27 +1,12 @@
-<div align="center">
-
 # Chrysalis
 
 **Transforming specimen labels to digital data**
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel)](https://vercel.com)
-[![Built with Gemini](https://img.shields.io/badge/Powered%20by-Gemini%202.5%20Flash-4285F4?logo=google)](https://ai.google.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev/)
-
-</div>
+**Chrysalis** is a web-based, full-stack application designed to transform entomological specimen labels into digital data using Google Gemini-powered OCR and intelligent entity parsing. Developed to streamline digitizing historical and modern insect labels, Chrysalis reads and classifies locality information, collector metadata, dates, taxonomic determinations, and accession numbers.
 
 ---
 
-## Overview
-
-Chrysalis is a browser-based tool for digitising entomological specimen labels using AI vision. Upload images of pinned insect specimens and Chrysalis will automatically read the labels, parse the locality, collector, date, and other curatorial fields, and export a clean CSV ready for import into your collection management system.
-
-It is built for natural history collections professionals and researchers who need to move large batches of physical specimen data into digital form — quickly, accurately, and with human review built in.
-
----
-
-## Features
+## 🚀 Key features
 
 - **AI-powered OCR & parsing** — Uses Google Gemini 2.5 Flash to transcribe handwritten and printed specimen labels and structure the data in one pass
 - **Batch processing** — Upload multiple images at once and process them sequentially
@@ -33,27 +18,56 @@ It is built for natural history collections professionals and researchers who ne
 - **Configurable prompt & temperature** — Adjust the system prompt and model temperature in-app to tune extraction behaviour for your label types
 - **No backend required** — Runs entirely in the browser; your API key and data never leave your machine
 
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Framework | React 18 + TypeScript |
-| Build tool | Vite |
-| Styling | Tailwind CSS |
-| AI | Google Gemini 2.5 Flash (`@google/genai`) |
-| Icons | Lucide React |
-| Deployment | Vercel |
 
 ---
 
-## Getting Started
+## 🛠 Recent updates & fixes (v1.1.0)
 
-### Prerequisites
+### 1. Broadened Gemini API Key Validation (Support for Authorization Keys)
+*   **The Issue**: Google is transitioning its standard API keys (which traditionally started with `AIzaSy...`) to newer, secure authorization keys (starting with `AQ...`). The previous in-app key validator rejected these newer keys as "invalid format".
+*   **The Fix**: Upgraded the API key syntax validator inside the **Set Gemini API Key** modal to allow both traditional `AIza` and newer `AQ` prefixes, enabling seamless usage of the newest Google Developer keys.
 
-- [Node.js](https://nodejs.org/) v18 or later
-- A [Google AI Studio](https://ai.google.dev/) API key with Gemini access
+### 2. Smart Accession Number Auto-Extraction from Filenames
+*   **Feature**: Implemented an automated regex pattern-matching parser that extracts accession numbers directly from specimen image filenames (e.g., extracting `NZAC12345678` from `NZAC12345678_specimen.jpg`). 
+*   **Detail**: If no matching code/digit pattern is found, it automatically falls back to checking the extracted OCR text as a candidate accession identifier, and lastly allowing manual typing to fill in the accession number.
+
+### 3. Advanced Taxonomic Fields & Bulk Taxonomy Assignment
+*   **Feature**: Introduced a comprehensive taxonomic tracking with dedicated data schema fields for **Order**, **Family**, **Genus**, and **Species**.
+*   **Bulk Classifier**: Created a top-level bulk taxonomic applicator pane. Curators can input taxonomic identifiers once (e.g. Order: *Hymenoptera*, Family: *Apidae*) and apply them globally across all imported specimens in the batch with a single click, vastly streamlining series-level processing.
+*   **Gemini Extraction**: Augmented the Gemini parser prompt to intelligently extract any verbatim or implied taxonomic designations directly from the label OCR.
+
+---
+
+## 👤 Usage
+
+### 1. Add Images
+*   Click **Add** to upload one or more specimen label images (JPEG, PNG, WEBP, etc.). Images are displayed in the left panel as a queue.
+
+### 2. Process
+*   Click **Run** to send all pending images to Gemini for analysis. Each record is processed sequentially and the results appear in real time. You can process individual records by hovering over a record and clicking the refresh icon.
+
+### 3. Review & Edit
+*   Click any record to open it in the detail editor. The specimen image is shown alongside all parsed fields. Correct any errors, then click **Mark as Reviewed** to flag the record as complete.
+
+Use the **← Prev / Next →** arrows to move through records without returning to the list.
+
+### 4. Export
+*   Click **Export** to download a CSV file of all records. The file includes metadata columns (`filename`, `status`, `reviewed`, `accession_number`) followed by all data fields. Accession numbers are auto-extracted from filenames using a `[Letters][Numbers]` pattern (e.g. `NZAC03028810`).
+
+## ⚙️ Configuration
+
+### API Key
+Your Gemini API key is entered through the in-app modal on first launch and stored in `localStorage`. You can update it at any time by clicking the **API Key** button in the top-right corner.
+
+### System Prompt
+The default prompt is tuned for New Zealand entomological collections. You can edit it live via the **Settings** (⚙) panel. Changes apply to all subsequent processing runs within the session.
+
+### Temperature
+The model temperature slider (0.0–1.0) controls how deterministic the output is. The default is `0.2` (low temperature = more precise, consistent extraction). Increase it only if you are finding the model too rigid for ambiguous labels.
+
+---
+
+## 📦 Getting started for devs
 
 ### Local Development
 
@@ -83,98 +97,8 @@ npm run build
 
 The output is in `dist/`. Deploy this directory to any static host (Vercel, Netlify, GitHub Pages, etc.).
 
----
 
-## Project Structure
-
-```
-chrysalis/
-├── src/
-│   ├── App.tsx                  # Main application & state management
-│   ├── index.tsx                # React entry point
-│   ├── index.css                # Global styles
-│   ├── types.ts                 # TypeScript interfaces
-│   ├── constants.ts             # Default system prompt
-│   ├── services/
-│   │   └── geminiService.ts     # Gemini API client & response parsing
-│   └── components/
-│       ├── ApiKeyModal.tsx      # API key entry dialog
-│       ├── DetailEditor.tsx     # Per-record field editor & image viewer
-│       └── DisclaimerModal.tsx  # Accuracy disclaimer on first launch
-├── index.html
-├── vite.config.ts
-├── tsconfig.json
-└── package.json
-```
-
----
-
-## Usage
-
-### 1. Add Images
-Click **Add** to upload one or more specimen label images (JPEG, PNG, WEBP, etc.). Images are displayed in the left panel as a queue.
-
-### 2. Process
-Click **Run** to send all pending images to Gemini for analysis. Each record is processed sequentially and the results appear in real time. You can process individual records by hovering over a record and clicking the refresh icon.
-
-### 3. Review & Edit
-Click any record to open it in the detail editor. The specimen image is shown alongside all parsed fields. Correct any errors, then click **Mark as Reviewed** to flag the record as complete.
-
-Use the **← Prev / Next →** arrows to move through records without returning to the list.
-
-### 4. Export
-Click **Export** to download a CSV file of all records. The file includes metadata columns (`filename`, `status`, `reviewed`, `accession_number`) followed by all data fields. Accession numbers are auto-extracted from filenames using a `[Letters][Numbers]` pattern (e.g. `NZAC03028810`).
-
----
-
-## Data Fields
-
-The following fields are extracted from each label and included in the CSV export:
-
-| Field | Description |
-|---|---|
-| `accession_number` | Derived from filename (e.g. `NZAC03028810`) |
-| `raw_ocr_text` | Full verbatim transcription of all label text |
-| `collection_date` | Earliest collection date in `DD-MM-YYYY` format |
-| `collection_date_end` | End date for date ranges |
-| `collector` | Collector name — surname followed by initials |
-| `country` | Country of collection |
-| `state` | NZ Crosby code or equivalent regional code |
-| `locality` | Parsed and expanded locality name |
-| `verbatim_locality` | Exact locality text as it appears on the label |
-| `decimal_latitude` | WGS84 latitude (AI-estimated if not on label) |
-| `decimal_longitude` | WGS84 longitude (AI-estimated if not on label) |
-| `geocode_method` | `AI-estimated` or source of coordinates |
-| `altitude` | Altitude/elevation if present |
-| `habitat` | Habitat description |
-| `method` | Collection method (e.g. Malaise trap, light trap) |
-| `determiner` | Identifier (the person who determined the species) |
-| `notes` | Any remaining label text not captured elsewhere |
-
----
-
-## Configuration
-
-### API Key
-Your Gemini API key is entered through the in-app modal on first launch and stored in `localStorage`. You can update it at any time by clicking the **API Key** button in the top-right corner.
-
-### System Prompt
-The default prompt is tuned for New Zealand entomological collections. You can edit it live via the **Settings** (⚙) panel. Changes apply to all subsequent processing runs within the session.
-
-### Temperature
-The model temperature slider (0.0–1.0) controls how deterministic the output is. The default is `0.2` (low temperature = more precise, consistent extraction). Increase it only if you are finding the model too rigid for ambiguous labels.
-
----
-
-## Accuracy & Disclaimer
-
-Chrysalis uses AI vision to interpret handwritten, typewritten, and printed labels. Accuracy will vary with label quality, handwriting legibility, and image resolution. **All AI-extracted data should be reviewed by a qualified person before being committed to a collection database.** Chrysalis includes a disclaimer prompt on first launch as a reminder of this.
-
-Georeferencing is performed by the AI model based on locality text and is inherently approximate. Always verify coordinates against authoritative gazetteers before publication.
-
----
-
-## Contributing
+###    Contributing
 
 Pull requests are welcome. For major changes please open an issue first to discuss the approach.
 
@@ -186,6 +110,14 @@ Pull requests are welcome. For major changes please open an issue first to discu
 
 ---
 
-## Acknowledgements
+## Accuracy & Disclaimer
 
-Developed to support natural history collection digitisation workflows. Label parsing prompt informed by entomological curatorial best practices and the [Darwin Core standard](https://dwc.tdwg.org/).
+Chrysalis uses AI vision to interpret handwritten, typewritten, and printed labels. Accuracy will vary with label quality, handwriting legibility, and image resolution. **All AI-extracted data should be reviewed by a qualified person before being committed to a collection database.** Chrysalis includes a disclaimer prompt on first launch as a reminder of this.
+
+Georeferencing is performed by the AI model based on locality text and is inherently approximate. Always verify coordinates against authoritative gazetteers before publication.
+
+---
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE).

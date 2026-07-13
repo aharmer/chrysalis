@@ -11,6 +11,7 @@ export interface SpecimenRecord {
 }
 
 export interface EntomologicalData {
+  accession_number: string;
   raw_ocr_text: string;
   collection_date: string;
   collection_date_end: string;
@@ -22,10 +23,15 @@ export interface EntomologicalData {
   decimal_latitude: string;
   decimal_longitude: string;
   geocode_method: string;
+  coordinate_uncertainty_in_meters: string;
   altitude: string;
   habitat: string;
   method: string;
   determiner: string;
+  order: string;
+  family: string;
+  genus: string;
+  species: string;
   notes: string;
 }
 
