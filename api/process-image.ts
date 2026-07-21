@@ -21,6 +21,7 @@ const entomoSchema: Schema = {
     habitat: { type: Type.STRING },
     method: { type: Type.STRING },
     determiner: { type: Type.STRING },
+    determined_date: { type: Type.STRING },
     order: { type: Type.STRING },
     family: { type: Type.STRING },
     genus: { type: Type.STRING },

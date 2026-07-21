@@ -21,6 +21,8 @@ export const DetailEditor: React.FC<DetailEditorProps> = ({ record, onClose, onS
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
+  const [showToast, setShowToast] = useState(false);
+
   useEffect(() => {
     setFormData(record.data);
     setIsDirty(false);
@@ -37,12 +39,16 @@ export const DetailEditor: React.FC<DetailEditorProps> = ({ record, onClose, onS
   const handleSave = (reviewed: boolean = false) => {
     onSave(record.id, formData, reviewed);
     setIsDirty(false);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2500);
   };
 
   const handleNext = () => {
     handleSave(true);
     if (hasNext) {
       onNavigate('next');
+    } else {
+      onClose();
     }
   };
 
@@ -336,18 +342,19 @@ export const DetailEditor: React.FC<DetailEditorProps> = ({ record, onClose, onS
                     <h3 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Identification & Notes</h3>
                  </div>
                  
-                 <div className="grid grid-cols-1 gap-4">
+                 <div className="grid grid-cols-2 gap-4">
                     {renderField("Determiner", "determiner", <User size={12} />, "Who identified the specimen")}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                        <FileText size={12} /> Notes
-                      </label>
-                      <textarea 
-                        value={formData.notes || ''} 
-                        onChange={(e) => handleChange('notes', e.target.value)}
-                        className="w-full h-24 px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all shadow-sm resize-none"
-                      />
-                    </div>
+                    {renderField("Determined Date", "determined_date", <Calendar size={12} />, "e.g. 2015 or 12-05-2015")}
+                 </div>
+                 <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <FileText size={12} /> Notes
+                    </label>
+                    <textarea 
+                      value={formData.notes || ''} 
+                      onChange={(e) => handleChange('notes', e.target.value)}
+                      className="w-full h-24 px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all shadow-sm resize-none"
+                    />
                  </div>
               </div>
 
@@ -369,8 +376,24 @@ export const DetailEditor: React.FC<DetailEditorProps> = ({ record, onClose, onS
         </div>
       </div>
       
+      {/* Toast notification */}
+      {showToast && (
+        <div className="absolute bottom-16 right-8 bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <CheckCircle2 size={16} className="text-emerald-400" />
+          <span>Record saved & marked reviewed</span>
+        </div>
+      )}
+
       {/* Footer Actions */}
-      <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3 shrink-0">
+      <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between gap-3 shrink-0">
+         <button 
+            onClick={() => handleSave(false)}
+            disabled={!isDirty}
+            className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-40 text-slate-700 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 shadow-sm"
+         >
+            <Save size={16} /> Save Draft
+         </button>
+
          <button 
             onClick={handleNext}
             className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center gap-2"

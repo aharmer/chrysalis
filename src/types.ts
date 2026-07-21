@@ -28,6 +28,7 @@ export interface EntomologicalData {
   habitat: string;
   method: string;
   determiner: string;
+  determined_date: string;
   order: string;
   family: string;
   genus: string;

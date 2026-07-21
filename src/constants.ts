@@ -29,7 +29,8 @@ Your task is to Transcribe the text AND Parse it into structured data simultaneo
         *   'family': e.g., "Geometridae", "Carabidae" (or leave blank if unknown).
         *   'genus': e.g., "Declana", "Olinga" (or leave blank if unknown).
         *   'species': Specific epithet only, e.g., "floccosa", "feredayi" (or leave blank if unknown).
-    *   'Det.' is the determiner.
+    *   'Det.' is the determiner. 'determined_date' is the date or year when the specimen was identified/determined.
+    *   **Multiple Determinations**: Occasionally there could be multiple determination labels on a specimen. Always extract and use the most recent determination and its corresponding date. Determinations are typically preceded by the abbreviation 'det.' and the date is usually just the year (e.g. '2015', '1984', or '12-05-2015').
     *   Add remaining unused text to 'Notes'.
     *   If an entity is missing, leave it as an empty string.
 
@@ -52,6 +53,7 @@ Return a valid JSON object matching this schema exactly:
   "habitat": "",
   "method": "",
   "determiner": "",
+  "determined_date": "",
   "order": "",
   "family": "",
   "genus": "",
