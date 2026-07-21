@@ -2,7 +2,7 @@
 
 **Transforming specimen labels to digital data**
 
-**Chrysalis** is a web-based, full-stack application designed to transform entomological specimen labels into digital data using Google Gemini-powered OCR and intelligent entity parsing. Developed to streamline digitizing historical and modern insect labels, Chrysalis reads and classifies locality information, collector metadata, dates, taxonomic determinations, and accession numbers.
+[**Chrysalis**](https://chrysalis-ento.vercel.app/) is a web-based application designed to transform entomological specimen labels into digital data using Google Gemini-powered OCR and intelligent entity parsing. Developed to streamline digitizing historical and modern insect labels, Chrysalis reads and classifies locality information, collector metadata, dates, taxonomic determinations, and accession numbers.
 
 ---
 
@@ -112,7 +112,7 @@ Pull requests are welcome. For major changes please open an issue first to discu
 
 ## Accuracy & Disclaimer
 
-Chrysalis uses AI vision to interpret handwritten, typewritten, and printed labels. Accuracy will vary with label quality, handwriting legibility, and image resolution. **All AI-extracted data should be reviewed by a qualified person before being committed to a collection database.** Chrysalis includes a disclaimer prompt on first launch as a reminder of this.
+Chrysalis uses AI vision to interpret handwritten and printed labels. Accuracy will vary with label quality, handwriting legibility, and image resolution. **All AI-extracted data should be reviewed by a qualified person before being committed to a collection database.** Chrysalis includes a disclaimer prompt on first launch as a reminder of this.
 
 Georeferencing is performed by the AI model based on locality text and is inherently approximate. Always verify coordinates against authoritative gazetteers before publication.
 
