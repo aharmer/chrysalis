@@ -85,11 +85,5 @@ export const AVAILABLE_MODELS: GeminiModelOption[] = [
     id: 'gemini-3.6-flash',
     name: 'Gemini 3.6 Flash',
     description: 'Latest basic & structured text generation',
-  },
-  {
-    id: 'gemini-3.1-pro-preview',
-    name: 'Gemini 3.1 Pro',
-    description: 'Maximum reasoning for complex labels',
-    badge: 'Pro'
   }
 ];

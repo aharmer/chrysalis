@@ -31,7 +31,8 @@ const App: React.FC = () => {
   const [temperature, setTemperature] = useState<number>(0.2);
   const [showPromptSettings, setShowPromptSettings] = useState<boolean>(false);
   const [modelName, setModelName] = useState<string>(() => {
-    return localStorage.getItem('chrysalis_selected_model') || 'gemini-3.5-flash';
+    const saved = localStorage.getItem('chrysalis_selected_model');
+    return AVAILABLE_MODELS.some(m => m.id === saved) ? (saved as string) : 'gemini-3.5-flash';
   });
 
   const handleModelChange = (newModel: string) => {
