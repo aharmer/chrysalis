@@ -60,3 +60,36 @@ Return a valid JSON object matching this schema exactly:
   "species": "",
   "notes": ""
 }`;
+
+export interface GeminiModelOption {
+  id: string;
+  name: string;
+  description: string;
+  badge?: string;
+}
+
+export const AVAILABLE_MODELS: GeminiModelOption[] = [
+  {
+    id: 'gemini-3.5-flash',
+    name: 'Gemini 3.5 Flash',
+    description: 'High accuracy & advanced taxonomic reasoning',
+    badge: 'Recommended'
+  },
+  {
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    description: 'Faster & economical for high-volume batches',
+    badge: 'Economical'
+  },
+  {
+    id: 'gemini-3.6-flash',
+    name: 'Gemini 3.6 Flash',
+    description: 'Latest basic & structured text generation',
+  },
+  {
+    id: 'gemini-3.1-pro-preview',
+    name: 'Gemini 3.1 Pro',
+    description: 'Maximum reasoning for complex labels',
+    badge: 'Pro'
+  }
+];

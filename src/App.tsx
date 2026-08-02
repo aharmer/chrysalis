@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, Settings, Play, Download, Trash2, AlertCircle, CheckCircle2, Loader2, ScanText, Thermometer, FileText, RefreshCw, CheckSquare, Square, Search, Microscope, Github } from 'lucide-react';
+import { Upload, Settings, Play, Download, Trash2, AlertCircle, CheckCircle2, Loader2, ScanText, Thermometer, FileText, RefreshCw, CheckSquare, Square, Search, Microscope, Github, Cpu } from 'lucide-react';
 import { EntomologicalData, SpecimenRecord, ProcessingStats } from '@/types';
-import { DEFAULT_ENTOMOLOGY_PROMPT } from '@/constants';
+import { DEFAULT_ENTOMOLOGY_PROMPT, AVAILABLE_MODELS } from '@/constants';
 import { processSpecimenImage, fileToBase64 } from '@/services/gemini_api';
 import { DetailEditor } from '@/components/DetailEditor';
 import { DisclaimerModal } from '@/components/DisclaimerModal';
@@ -30,6 +30,14 @@ const App: React.FC = () => {
   const [prompt, setPrompt] = useState<string>(DEFAULT_ENTOMOLOGY_PROMPT);
   const [temperature, setTemperature] = useState<number>(0.2);
   const [showPromptSettings, setShowPromptSettings] = useState<boolean>(false);
+  const [modelName, setModelName] = useState<string>(() => {
+    return localStorage.getItem('chrysalis_selected_model') || 'gemini-3.5-flash';
+  });
+
+  const handleModelChange = (newModel: string) => {
+    setModelName(newModel);
+    localStorage.setItem('chrysalis_selected_model', newModel);
+  };
   const [records, setRecords] = useState<SpecimenRecord[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
@@ -120,7 +128,7 @@ const App: React.FC = () => {
         const file = new File([blob], record.filename, { type: blob.type });
         const base64 = await fileToBase64(file);
 
-        const result = await processSpecimenImage(apiKey, base64, prompt, "gemini-3.5-flash", temperature);
+        const result = await processSpecimenImage(apiKey, base64, prompt, modelName, temperature);
 
         setRecords(prev => prev.map(r => {
           if (r.id === record.id) {
@@ -328,6 +336,23 @@ const App: React.FC = () => {
               <span className="flex items-center gap-1.5" title="Reviewed"><span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> {stats.reviewed}</span>
            </div>
 
+          {/* Quick Model Selector in Header */}
+          <div className="relative inline-block">
+            <select
+              value={modelName}
+              onChange={(e) => handleModelChange(e.target.value)}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold pl-2.5 pr-7 py-1.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer appearance-none transition-all"
+              title="Select AI Model"
+            >
+              {AVAILABLE_MODELS.map(m => (
+                <option key={m.id} value={m.id}>
+                  {m.name} {m.badge ? `(${m.badge})` : ''}
+                </option>
+              ))}
+            </select>
+            <Cpu size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+          </div>
+
           <button 
             onClick={() => setShowKeyModal(true)}
             className={`text-xs font-mono px-2.5 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 ${apiKey ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 animate-pulse'}`}
@@ -352,6 +377,28 @@ const App: React.FC = () => {
         <div className="bg-slate-50 border-b border-slate-200 p-4 shadow-inner animate-in slide-in-from-top-4 duration-200 shrink-0 z-10">
           <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-8">
             <div className="w-full md:w-1/3 space-y-4">
+                <div>
+                    <h3 className="text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider flex items-center gap-2">
+                        <Cpu size={14} /> AI Model Selection
+                    </h3>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm space-y-2">
+                        <select
+                            value={modelName}
+                            onChange={(e) => handleModelChange(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs font-semibold p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+                        >
+                            {AVAILABLE_MODELS.map(m => (
+                                <option key={m.id} value={m.id}>
+                                    {m.name} {m.badge ? `(${m.badge})` : ''}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-[10px] text-slate-500 leading-normal">
+                            {AVAILABLE_MODELS.find(m => m.id === modelName)?.description || "Select an AI model for label transcription"}
+                        </p>
+                    </div>
+                </div>
+
                 <div>
                     <h3 className="text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider flex items-center gap-2">
                         <Thermometer size={14} /> Model Temperature
