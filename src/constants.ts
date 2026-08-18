@@ -15,7 +15,7 @@ Your task is to Transcribe the text AND Parse it into structured data simultaneo
         *   North Island: ND, AK, CL, WO, BP, TK, TO, GB, HB, RI, WI, WA, WN
         *   South Island: SD, NN, KA, BR, MB, NC, MC, WD, SC, MK, OL, CO, DN, SL, FD
         *   Offshore/Other: SI, CH, AN, AU, CA, KE, SN, TH
-    *   **Georeferencing**: You MUST estimate 'decimal_latitude' and 'decimal_longitude' based on the location/locality text. Do not leave these blank unless the location is impossible to determine.
+    *   **Georeferencing**: You MUST estimate 'decimal_latitude' and 'decimal_longitude' based on the location/locality text if co-ordinates are not present. Do not leave these blank unless the location is impossible to determine.
     *   Set 'geocode_method' to 'AI-estimated' for these calculated coordinates.
     *   **Coordinate Uncertainty**: You MUST estimate the georeferencing coordinate accuracy/uncertainty in 'coordinate_uncertainty_in_meters'.
         *   If highly specific locality (e.g., exact mountain, exact reserve, specific coordinates or offset): "100" to "1000".
