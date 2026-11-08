@@ -1,9 +1,10 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, Settings, Play, Download, Trash2, AlertCircle, CheckCircle2, Loader2, ScanText, Thermometer, FileText, RefreshCw, CheckSquare, Square, Search, Microscope, Github, Cpu } from 'lucide-react';
+import { Upload, Settings, Play, Download, Trash2, AlertCircle, CheckCircle2, Loader2, ScanText, Thermometer, FileText, RefreshCw, CheckSquare, Square, Search, Microscope, Github, Cpu, FolderOpen, X } from 'lucide-react';
 import { EntomologicalData, SpecimenRecord, ProcessingStats } from '@/types';
 import { DEFAULT_ENTOMOLOGY_PROMPT, AVAILABLE_MODELS } from '@/constants';
 import { processSpecimenImage, fileToBase64 } from '@/services/gemini_api';
+import { SessionSaver, RecentFolder, supportsFolderAccess, pickFolder, requestFolderPermission, openSession, listRecentFolders, rememberFolder, forgetFolder } from '@/services/sessionFolder';
 import { DetailEditor } from '@/components/DetailEditor';
 import { DisclaimerModal } from '@/components/DisclaimerModal';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
@@ -22,6 +23,39 @@ const extractAccessionFromFilename = (filename: string): string => {
   
   return '';
 };
+
+const createRecord = (filename: string, imageUrl: string): SpecimenRecord => ({
+  id: Math.random().toString(36).substring(7),
+  filename,
+  imageUrl,
+  status: 'pending',
+  reviewed: false,
+  data: {
+    accession_number: extractAccessionFromFilename(filename),
+    raw_ocr_text: '',
+    collection_date: '',
+    collection_date_end: '',
+    collector: '',
+    country: '',
+    state: '',
+    locality: '',
+    verbatim_locality: '',
+    decimal_latitude: '',
+    decimal_longitude: '',
+    geocode_method: '',
+    coordinate_uncertainty_in_meters: '',
+    altitude: '',
+    habitat: '',
+    method: '',
+    determiner: '',
+    determined_date: '',
+    order: '',
+    family: '',
+    genus: '',
+    species: '',
+    notes: ''
+  }
+});
 
 const App: React.FC = () => {
   const [apiKey, setApiKey] = useState<string>(localStorage.getItem('gemini_api_key') || '');
@@ -52,6 +86,30 @@ const App: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // The folder this run is saved in. Images added with "Add" have no folder and aren't saved.
+  const [folder, setFolder] = useState<FileSystemDirectoryHandle | null>(null);
+  const [isOpeningFolder, setIsOpeningFolder] = useState<boolean>(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [folderNotice, setFolderNotice] = useState<{ tone: 'info' | 'error'; text: string } | null>(null);
+  const [recentFolders, setRecentFolders] = useState<RecentFolder[]>([]);
+  const saverRef = useRef<SessionSaver | null>(null);
+
+  useEffect(() => {
+    if (supportsFolderAccess()) listRecentFolders().then(setRecentFolders);
+  }, []);
+
+  useEffect(() => {
+    saverRef.current?.schedule(records, { prompt, temperature });
+  }, [records, prompt, temperature]);
+
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') void saverRef.current?.flush();
+    };
+    document.addEventListener('visibilitychange', onHide);
+    return () => document.removeEventListener('visibilitychange', onHide);
+  }, []);
+
   const stats: ProcessingStats = {
     total: records.length,
     processed: records.filter(r => r.status === 'success' || r.status === 'error').length,
@@ -63,51 +121,104 @@ const App: React.FC = () => {
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const newFiles = Array.from(event.target.files) as File[];
-      const newRecords: SpecimenRecord[] = [];
-
-      for (const file of newFiles) {
-        const imageUrl = URL.createObjectURL(file);
-        
-        const id = Math.random().toString(36).substring(7);
-        newRecords.push({
-          id,
-          filename: file.name,
-          imageUrl,
-          status: 'pending',
-          reviewed: false,
-          data: {
-            accession_number: extractAccessionFromFilename(file.name),
-            raw_ocr_text: '',
-            collection_date: '',
-            collection_date_end: '',
-            collector: '',
-            country: '',
-            state: '',
-            locality: '',
-            verbatim_locality: '',
-            decimal_latitude: '',
-            decimal_longitude: '',
-            geocode_method: '',
-            coordinate_uncertainty_in_meters: '',
-            altitude: '',
-            habitat: '',
-            method: '',
-            determiner: '',
-            determined_date: '',
-            order: '',
-            family: '',
-            genus: '',
-            species: '',
-            notes: ''
-          }
-        });
-      }
+      const newRecords = newFiles.map(file => createRecord(file.name, URL.createObjectURL(file)));
       setRecords(prev => [...prev, ...newRecords]);
       // Select the first new record if none selected
       if (!selectedRecordId && newRecords.length > 0) {
         setSelectedRecordId(newRecords[0].id);
       }
     }
+  };
+
+  /** Gets the open folder's latest changes onto disk. False means they couldn't be saved and the user chose to stay. */
+  const flushOpenFolder = async () => {
+    const saver = saverRef.current;
+    if (!saver || await saver.flush()) return true;
+    return window.confirm('The latest changes could not be saved to the current folder. Continue anyway and lose them?');
+  };
+
+  const loadFolder = async (handle: FileSystemDirectoryHandle) => {
+    if (!folder && records.length > 0 && !window.confirm(
+      `Opening "${handle.name}" will replace the ${records.length} image(s) in the list, which aren't saved to a folder. Export them first if you need them.\n\nOpen the folder anyway?`
+    )) return;
+    if (!await flushOpenFolder()) return;
+
+    setIsOpeningFolder(true);
+    setFolderNotice(null);
+    try {
+      const opened = await openSession(handle, createRecord);
+      if (opened.records.length === 0) {
+        setFolderNotice({ tone: 'error', text: `No images found in "${handle.name}". Chrysalis looks for JPEG, PNG, WebP, BMP and GIF files directly inside the folder you choose.` });
+        return;
+      }
+
+      const settings = opened.settings ?? { prompt, temperature };
+      setPrompt(settings.prompt);
+      setTemperature(settings.temperature);
+
+      saverRef.current?.stop();
+      const saver = new SessionSaver(handle, setSaveError, opened);
+      saver.markClean(opened.records, settings);
+      saverRef.current = saver;
+
+      records.forEach(r => URL.revokeObjectURL(r.imageUrl));
+      setRecords(opened.records);
+      setSelectedRecordId(opened.records[0].id);
+      setFolder(handle);
+      setSaveError(null);
+
+      if (opened.settings) {
+        const done = opened.records.filter(r => r.status === 'success').length;
+        const pending = opened.records.filter(r => r.status === 'pending').length;
+        const setAside = opened.orphans.length > 0 ? ` ${opened.orphans.length} saved result(s) have no matching image in this folder and were set aside.` : '';
+        setFolderNotice({ tone: 'info', text: `Resumed: ${done} of ${opened.records.length} images have results.${pending > 0 ? ` Click Run to process the other ${pending}.` : ''}${setAside}` });
+      }
+
+      await rememberFolder(handle);
+      setRecentFolders(await listRecentFolders());
+    } catch (err) {
+      setFolderNotice({ tone: 'error', text: `Couldn't open "${handle.name}": ${err instanceof Error ? err.message : String(err)}` });
+    } finally {
+      setIsOpeningFolder(false);
+    }
+  };
+
+  const handleOpenFolder = async () => {
+    try {
+      await loadFolder(await pickFolder());
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      setFolderNotice({ tone: 'error', text: err instanceof Error ? err.message : String(err) });
+    }
+  };
+
+  const handleOpenRecent = async (recent: RecentFolder) => {
+    try {
+      if (!await requestFolderPermission(recent.handle)) {
+        setFolderNotice({ tone: 'error', text: `Permission to use "${recent.name}" wasn't granted.` });
+        return;
+      }
+      await loadFolder(recent.handle);
+    } catch {
+      setFolderNotice({ tone: 'error', text: `"${recent.name}" is no longer available. It may have been moved, renamed or deleted.` });
+    }
+  };
+
+  const handleForgetRecent = async (recent: RecentFolder) => {
+    await forgetFolder(recent);
+    setRecentFolders(await listRecentFolders());
+  };
+
+  const handleCloseFolder = async () => {
+    if (!await flushOpenFolder()) return;
+    saverRef.current?.stop();
+    saverRef.current = null;
+    records.forEach(r => URL.revokeObjectURL(r.imageUrl));
+    setRecords([]);
+    setSelectedRecordId(null);
+    setFolder(null);
+    setSaveError(null);
+    setFolderNotice(null);
   };
 
   const runProcessing = useCallback(async (recordsToProcess: SpecimenRecord[]) => {
@@ -157,7 +268,7 @@ const App: React.FC = () => {
     }
 
     setIsProcessing(false);
-  }, [apiKey, isProcessing, prompt, temperature]);
+  }, [apiKey, isProcessing, prompt, modelName, temperature]);
 
   const handleProcessPending = () => {
     const pendingRecords = records.filter(r => r.status === 'pending');
@@ -289,6 +400,8 @@ const App: React.FC = () => {
 
   const handleDeleteRecord = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    const deleted = records.find(r => r.id === id);
+    if (deleted) saverRef.current?.markRemoved(deleted.filename);
     setRecords(prev => {
         const next = prev.filter(r => r.id !== id);
         if (selectedRecordId === id) {
@@ -444,9 +557,19 @@ const App: React.FC = () => {
         <div className="w-[400px] flex flex-col border-r border-slate-200 bg-white shrink-0 z-0">
              {/* Toolbar */}
             <div className="p-3 border-b border-slate-200 flex flex-wrap gap-2 bg-slate-50">
-                 <button 
+                 <button
+                    onClick={handleOpenFolder}
+                    disabled={!supportsFolderAccess() || isProcessing || isOpeningFolder}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded text-sm font-medium shadow-sm transition-all whitespace-nowrap"
+                    title={supportsFolderAccess() ? 'Open a folder of images. Progress is saved in it automatically, so a run can be resumed.' : 'Opening a folder needs Chrome or Edge'}
+                >
+                    {isOpeningFolder ? <Loader2 size={16} className="animate-spin" /> : <FolderOpen size={16} />} Open folder
+                </button>
+                 <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium shadow-sm transition-all"
+                    disabled={folder !== null}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 rounded text-sm font-medium shadow-sm transition-all"
+                    title={folder ? 'Close the folder to add individual images' : "Add individual images. These aren't saved if the browser closes."}
                 >
                     <Upload size={16} /> Add
                 </button>
@@ -569,13 +692,65 @@ const App: React.FC = () => {
                  )}
             </div>
 
+            {/* Saved folder status */}
+            {folder && (
+                <div className="px-3 py-2 border-b border-slate-200 bg-white flex items-center gap-2 text-xs">
+                    <FolderOpen size={14} className="text-slate-500 shrink-0" />
+                    <span className="font-semibold text-slate-700 truncate" title={folder.name}>{folder.name}</span>
+                    <span className={`ml-auto whitespace-nowrap ${saveError ? 'text-red-600 font-semibold' : 'text-slate-500'}`}>
+                        {saveError ? 'Not saved' : 'Saving automatically'}
+                    </span>
+                    <button
+                        onClick={handleCloseFolder}
+                        disabled={isProcessing}
+                        className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed rounded"
+                        title="Close folder"
+                    >
+                        <X size={14} />
+                    </button>
+                </div>
+            )}
+            {saveError && (
+                <div className="px-3 py-2 border-b border-red-200 bg-red-50 text-red-700 text-xs leading-snug">{saveError}</div>
+            )}
+            {folderNotice && (
+                <div className={`px-3 py-2 border-b text-xs leading-snug flex items-start gap-2 ${folderNotice.tone === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-blue-200 bg-blue-50 text-blue-800'}`}>
+                    <span className="flex-1">{folderNotice.text}</span>
+                    <button onClick={() => setFolderNotice(null)} className="p-0.5 opacity-60 hover:opacity-100 rounded" title="Dismiss">
+                        <X size={14} />
+                    </button>
+                </div>
+            )}
+
             {/* List */}
             <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-100 p-2 space-y-2">
                 {records.length === 0 && (
                     <div className="h-64 flex flex-col items-center justify-center text-slate-400 p-4 text-center">
                         <Search size={32} className="mb-2 opacity-30" />
                         <p className="text-sm font-medium">No images</p>
-                        <p className="text-xs">Upload to start</p>
+                        <p className="text-xs">Open a folder or add images to start</p>
+                    </div>
+                )}
+
+                {records.length === 0 && recentFolders.length > 0 && (
+                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                        <h3 className="px-3 py-2 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Pick up where you left off</h3>
+                        {recentFolders.map(recent => (
+                            <div key={recent.openedAt} className="flex items-center border-b border-slate-100 last:border-b-0 hover:bg-blue-50">
+                                <button
+                                    onClick={() => handleOpenRecent(recent)}
+                                    disabled={isOpeningFolder}
+                                    className="flex-1 min-w-0 flex items-center gap-2 px-3 py-2 text-left disabled:cursor-not-allowed"
+                                >
+                                    <FolderOpen size={14} className="text-slate-400 shrink-0" />
+                                    <span className="text-xs font-semibold text-slate-700 truncate">{recent.name}</span>
+                                    <span className="ml-auto text-[10px] text-slate-400 whitespace-nowrap">{new Date(recent.openedAt).toLocaleDateString()}</span>
+                                </button>
+                                <button onClick={() => handleForgetRecent(recent)} className="p-2 text-slate-300 hover:text-slate-600" title="Remove from this list">
+                                    <X size={12} />
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 )}
 

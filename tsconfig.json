@@ -11,7 +11,8 @@
     ],
     "skipLibCheck": true,
     "types": [
-      "node"
+      "node",
+      "wicg-file-system-access"
     ],
     "moduleResolution": "bundler",
     "isolatedModules": true,

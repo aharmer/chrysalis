@@ -41,7 +41,8 @@
 ## 👤 Usage
 
 ### 1. Add Images
-*   Click **Add** to upload one or more specimen label images (JPEG, PNG, WEBP, etc.). Images are displayed in the left panel as a queue.
+*   Click **Open folder** to load every image in a folder (Chrome or Edge). Progress is saved automatically in a hidden `.chrysalis` folder next to the images, so if the browser closes you can reopen the folder, or pick it from the list on the start screen, and carry on. Results, edits and review status come back without sending anything to Gemini again; click **Run** to process whatever is left.
+*   Click **Add** to upload individual specimen label images (JPEG, PNG, WEBP, etc.) in any browser. Images added this way are not saved if the browser closes. Images are displayed in the left panel as a queue.
 
 ### 2. Process
 *   Click **Run** to send all pending images to Gemini for analysis. Each record is processed sequentially and the results appear in real time. You can process individual records by hovering over a record and clicking the refresh icon.
