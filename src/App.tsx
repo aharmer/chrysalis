@@ -84,6 +84,8 @@ const App: React.FC = () => {
   };
   const [records, setRecords] = useState<SpecimenRecord[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [isStopping, setIsStopping] = useState<boolean>(false);
+  const stopRequestedRef = useRef<boolean>(false);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [showBulkTaxonomy, setShowBulkTaxonomy] = useState<boolean>(false);
   const [bulkTaxonomy, setBulkTaxonomy] = useState({
@@ -221,10 +223,18 @@ const App: React.FC = () => {
       return;
     }
 
+    stopRequestedRef.current = false;
     setIsProcessing(true);
     setFolderNotice(null);
 
     for (const [index, record] of recordsToProcess.entries()) {
+      if (stopRequestedRef.current) {
+        // Reprocess All can stop on images that already have results, which Run won't pick up again.
+        const canContinue = recordsToProcess.slice(index).some(needsProcessing);
+        setFolderNotice({ tone: 'info', text: `Stopped. ${recordsToProcess.length - index} image(s) were not sent.${canContinue ? ' Click Run to carry on.' : ''}` });
+        break;
+      }
+
       setRecords(prev => prev.map(r => r.id === record.id ? { ...r, status: 'processing', errorMsg: undefined } : r));
 
       try {
@@ -268,7 +278,14 @@ const App: React.FC = () => {
     }
 
     setIsProcessing(false);
+    setIsStopping(false);
   }, [apiKey, isProcessing, prompt, modelName, temperature]);
+
+  /** Takes effect once the image in flight comes back: its request is already made, so its result is worth keeping. */
+  const handleStop = () => {
+    stopRequestedRef.current = true;
+    setIsStopping(true);
+  };
 
   const handleProcessPending = () => {
     runProcessing(records.filter(needsProcessing));
@@ -566,13 +583,13 @@ const App: React.FC = () => {
                 </button>
                 
                 <button 
-                    onClick={handleProcessPending}
-                    disabled={isProcessing || !records.some(needsProcessing)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded text-sm font-medium shadow-sm transition-all"
-                    title="Process pending images and retry failed ones"
+                    onClick={isProcessing ? handleStop : handleProcessPending}
+                    disabled={isStopping || (!isProcessing && !records.some(needsProcessing))}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 ${isProcessing ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'} disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded text-sm font-medium shadow-sm transition-all`}
+                    title={isProcessing ? 'Stop after the current image finishes' : 'Process pending images and retry failed ones'}
                 >
-                    {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-                    Run
+                    {isStopping ? <Loader2 size={16} className="animate-spin" /> : isProcessing ? <Square size={16} fill="currentColor" /> : <Play size={16} />}
+                    {isStopping ? 'Stopping' : isProcessing ? 'Stop' : 'Run'}
                 </button>
 
                  <div className="w-full flex gap-2">

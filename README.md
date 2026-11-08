@@ -44,7 +44,7 @@
 *   Click **Open folder** to load every image directly inside a folder (JPEG, PNG, WEBP, BMP or GIF). Chrysalis needs Chrome or Edge for this. Images are displayed in the left panel as a queue. Progress is saved automatically in a hidden `.chrysalis` folder next to the images, so if the browser closes you can reopen the folder, or pick it from the list on the start screen, and carry on. Results, edits and review status come back without sending anything to Gemini again; click **Run** to process whatever is left.
 
 ### 2. Process
-*   Click **Run** to send all pending images to Gemini for analysis and retry any that failed. Each record is processed sequentially and the results appear in real time. You can process individual records by hovering over a record and clicking the refresh icon.
+*   Click **Run** to send all pending images to Gemini for analysis and retry any that failed. Each record is processed sequentially and the results appear in real time. During a run the button becomes **Stop**, which halts the batch once the current image finishes; click **Run** to carry on. You can process individual records by hovering over a record and clicking the refresh icon.
 
 ### 3. Review & Edit
 *   Click any record to open it in the detail editor. The specimen image is shown alongside all parsed fields. Correct any errors, then click **Mark as Reviewed** to flag the record as complete.
