@@ -21,7 +21,25 @@
 
 ---
 
-## 🛠 Recent updates & fixes (v1.1.0)
+## 🛠 Recent updates & fixes (v1.2.0)
+
+### 1. Save and Resume Runs
+*   **Feature**: Opening a folder saves progress automatically in a hidden `.chrysalis` folder next to the images. If the browser closes or restarts, reopen the folder and results, edits and review status come back without sending anything to Gemini again.
+
+### 2. Stop, Retry and Out-of-Credits Handling
+*   **Stop**: **Run** becomes **Stop** during a run, halting the batch once the current image finishes.
+*   **Retry**: **Run** now also retries images that failed, without re-sending the ones that succeeded.
+*   **Out of credits**: A run stops at the first out-of-credits error from Gemini and leaves the rest of the queue untouched.
+
+### 3. Folder-Based Workflow
+*   **Change**: **Open folder** replaces the **Add** button, so Chrysalis now needs Chrome or Edge.
+
+### 4. Model Selection Fix
+*   **The Fix**: A model chosen just before clicking **Run** could be ignored in favour of the previous one. The selected model is now always used.
+
+---
+
+## 🛠 Earlier updates & fixes (v1.1.0)
 
 ### 1. Broadened Gemini API Key Validation (Support for Authorization Keys)
 *   **The Issue**: Google is transitioning its standard API keys (which traditionally started with `AIzaSy...`) to newer, secure authorization keys (starting with `AQ...`). The previous in-app key validator rejected these newer keys as "invalid format".
