@@ -24,6 +24,12 @@ const extractAccessionFromFilename = (filename: string): string => {
   return '';
 };
 
+/**
+ * The server reports every Gemini failure as a 500, so the message is all there is to go on.
+ * Not RESOURCE_EXHAUSTED on its own: Gemini uses that for short-lived rate limits too.
+ */
+const isOutOfCredits = (message: unknown) => /"code"\s*:\s*402|prepayment credits|credits are depleted/i.test(String(message));
+
 /** What Run works through: images not done yet, and ones that failed (out of credits, network, etc.). */
 const needsProcessing = (r: SpecimenRecord) => r.status === 'pending' || r.status === 'error';
 
@@ -233,8 +239,9 @@ const App: React.FC = () => {
     }
 
     setIsProcessing(true);
+    setFolderNotice(null);
 
-    for (const record of recordsToProcess) {
+    for (const [index, record] of recordsToProcess.entries()) {
       setRecords(prev => prev.map(r => r.id === record.id ? { ...r, status: 'processing', errorMsg: undefined } : r));
 
       try {
@@ -265,8 +272,15 @@ const App: React.FC = () => {
         setRecords(prev => prev.map(r => r.id === record.id ? { 
             ...r, 
             status: 'error', 
-            errorMsg: error.message 
+            errorMsg: error.message
         } : r));
+
+        // Every remaining image would fail the same way, so leave them as they are for the next Run.
+        if (isOutOfCredits(error.message)) {
+          const notSent = recordsToProcess.length - index - 1;
+          setFolderNotice({ tone: 'error', text: `Stopped: your Gemini credits have run out.${notSent > 0 ? ` ${notSent} image(s) were not sent.` : ''} Top up at ai.studio/projects, then click Run to carry on.` });
+          break;
+        }
       }
     }
 
