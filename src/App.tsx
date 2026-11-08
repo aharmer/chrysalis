@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, Settings, Play, Download, Trash2, AlertCircle, CheckCircle2, Loader2, ScanText, Thermometer, FileText, RefreshCw, CheckSquare, Square, Search, Microscope, Github, Cpu, FolderOpen, X } from 'lucide-react';
+import { Settings, Play, Download, Trash2, AlertCircle, CheckCircle2, Loader2, ScanText, Thermometer, FileText, RefreshCw, CheckSquare, Square, Search, Microscope, Github, Cpu, FolderOpen, X } from 'lucide-react';
 import { EntomologicalData, SpecimenRecord, ProcessingStats } from '@/types';
 import { DEFAULT_ENTOMOLOGY_PROMPT, AVAILABLE_MODELS } from '@/constants';
 import { processSpecimenImage, fileToBase64 } from '@/services/gemini_api';
@@ -93,9 +93,7 @@ const App: React.FC = () => {
     species: ''
   });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // The folder this run is saved in. Images added with "Add" have no folder and aren't saved.
+  // The folder this run is saved in.
   const [folder, setFolder] = useState<FileSystemDirectoryHandle | null>(null);
   const [isOpeningFolder, setIsOpeningFolder] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -127,18 +125,6 @@ const App: React.FC = () => {
     reviewed: records.filter(r => r.reviewed).length
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      const newFiles = Array.from(event.target.files) as File[];
-      const newRecords = newFiles.map(file => createRecord(file.name, URL.createObjectURL(file)));
-      setRecords(prev => [...prev, ...newRecords]);
-      // Select the first new record if none selected
-      if (!selectedRecordId && newRecords.length > 0) {
-        setSelectedRecordId(newRecords[0].id);
-      }
-    }
-  };
-
   /** Gets the open folder's latest changes onto disk. False means they couldn't be saved and the user chose to stay. */
   const flushOpenFolder = async () => {
     const saver = saverRef.current;
@@ -147,9 +133,6 @@ const App: React.FC = () => {
   };
 
   const loadFolder = async (handle: FileSystemDirectoryHandle) => {
-    if (!folder && records.length > 0 && !window.confirm(
-      `Opening "${handle.name}" will replace the ${records.length} image(s) in the list, which aren't saved to a folder. Export them first if you need them.\n\nOpen the folder anyway?`
-    )) return;
     if (!await flushOpenFolder()) return;
 
     setIsOpeningFolder(true);
@@ -581,22 +564,6 @@ const App: React.FC = () => {
                 >
                     {isOpeningFolder ? <Loader2 size={16} className="animate-spin" /> : <FolderOpen size={16} />} Open folder
                 </button>
-                 <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={folder !== null}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 rounded text-sm font-medium shadow-sm transition-all"
-                    title={folder ? 'Close the folder to add individual images' : "Add individual images. These aren't saved if the browser closes."}
-                >
-                    <Upload size={16} /> Add
-                </button>
-                <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    multiple 
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                />
                 
                 <button 
                     onClick={handleProcessPending}
@@ -743,8 +710,8 @@ const App: React.FC = () => {
                 {records.length === 0 && (
                     <div className="h-64 flex flex-col items-center justify-center text-slate-400 p-4 text-center">
                         <Search size={32} className="mb-2 opacity-30" />
-                        <p className="text-sm font-medium">No images</p>
-                        <p className="text-xs">Open a folder or add images to start</p>
+                        <p className="text-sm font-medium">{supportsFolderAccess() ? 'No images' : 'Chrysalis needs Chrome or Edge'}</p>
+                        <p className="text-xs">{supportsFolderAccess() ? 'Open a folder to start' : "Other browsers can't open a folder of images."}</p>
                     </div>
                 )}
 

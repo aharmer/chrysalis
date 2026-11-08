@@ -9,7 +9,7 @@
 ## 🚀 Key features
 
 - **AI-powered OCR & parsing** — Uses Google Gemini 2.5 Flash to transcribe handwritten and printed specimen labels and structure the data in one pass
-- **Batch processing** — Upload multiple images at once and process them sequentially
+- **Batch processing** — Open a folder of images and process them sequentially, resuming where you left off if the browser closes
 - **Split-panel editor** — View the specimen image alongside the parsed fields and correct them in real time
 - **Review workflow** — Mark records as reviewed to track progress through a digitisation batch
 - **Darwin Core–aligned export** — One-click CSV export with fields compatible with standard biodiversity databases (GBIF, ABCD, EMu, etc.)
@@ -40,9 +40,8 @@
 
 ## 👤 Usage
 
-### 1. Add Images
-*   Click **Open folder** to load every image in a folder (Chrome or Edge). Progress is saved automatically in a hidden `.chrysalis` folder next to the images, so if the browser closes you can reopen the folder, or pick it from the list on the start screen, and carry on. Results, edits and review status come back without sending anything to Gemini again; click **Run** to process whatever is left.
-*   Click **Add** to upload individual specimen label images (JPEG, PNG, WEBP, etc.) in any browser. Images added this way are not saved if the browser closes. Images are displayed in the left panel as a queue.
+### 1. Open a Folder
+*   Click **Open folder** to load every image directly inside a folder (JPEG, PNG, WEBP, BMP or GIF). Chrysalis needs Chrome or Edge for this. Images are displayed in the left panel as a queue. Progress is saved automatically in a hidden `.chrysalis` folder next to the images, so if the browser closes you can reopen the folder, or pick it from the list on the start screen, and carry on. Results, edits and review status come back without sending anything to Gemini again; click **Run** to process whatever is left.
 
 ### 2. Process
 *   Click **Run** to send all pending images to Gemini for analysis and retry any that failed. Each record is processed sequentially and the results appear in real time. You can process individual records by hovering over a record and clicking the refresh icon.
