@@ -45,7 +45,7 @@
 *   Click **Add** to upload individual specimen label images (JPEG, PNG, WEBP, etc.) in any browser. Images added this way are not saved if the browser closes. Images are displayed in the left panel as a queue.
 
 ### 2. Process
-*   Click **Run** to send all pending images to Gemini for analysis. Each record is processed sequentially and the results appear in real time. You can process individual records by hovering over a record and clicking the refresh icon.
+*   Click **Run** to send all pending images to Gemini for analysis and retry any that failed. Each record is processed sequentially and the results appear in real time. You can process individual records by hovering over a record and clicking the refresh icon.
 
 ### 3. Review & Edit
 *   Click any record to open it in the detail editor. The specimen image is shown alongside all parsed fields. Correct any errors, then click **Mark as Reviewed** to flag the record as complete.

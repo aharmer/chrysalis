@@ -24,6 +24,9 @@ const extractAccessionFromFilename = (filename: string): string => {
   return '';
 };
 
+/** What Run works through: images not done yet, and ones that failed (out of credits, network, etc.). */
+const needsProcessing = (r: SpecimenRecord) => r.status === 'pending' || r.status === 'error';
+
 const createRecord = (filename: string, imageUrl: string): SpecimenRecord => ({
   id: Math.random().toString(36).substring(7),
   filename,
@@ -169,7 +172,7 @@ const App: React.FC = () => {
 
       if (opened.settings) {
         const done = opened.records.filter(r => r.status === 'success').length;
-        const pending = opened.records.filter(r => r.status === 'pending').length;
+        const pending = opened.records.filter(needsProcessing).length;
         const setAside = opened.orphans.length > 0 ? ` ${opened.orphans.length} saved result(s) have no matching image in this folder and were set aside.` : '';
         setFolderNotice({ tone: 'info', text: `Resumed: ${done} of ${opened.records.length} images have results.${pending > 0 ? ` Click Run to process the other ${pending}.` : ''}${setAside}` });
       }
@@ -271,8 +274,7 @@ const App: React.FC = () => {
   }, [apiKey, isProcessing, prompt, modelName, temperature]);
 
   const handleProcessPending = () => {
-    const pendingRecords = records.filter(r => r.status === 'pending');
-    runProcessing(pendingRecords);
+    runProcessing(records.filter(needsProcessing));
   };
 
   const handleReprocessAll = () => {
@@ -584,9 +586,9 @@ const App: React.FC = () => {
                 
                 <button 
                     onClick={handleProcessPending}
-                    disabled={isProcessing || records.filter(r => r.status === 'pending').length === 0}
+                    disabled={isProcessing || !records.some(needsProcessing)}
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded text-sm font-medium shadow-sm transition-all"
-                    title="Process Pending Images"
+                    title="Process pending images and retry failed ones"
                 >
                     {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
                     Run
