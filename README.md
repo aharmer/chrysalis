@@ -21,7 +21,19 @@
 
 ---
 
-## 🛠 Recent updates & fixes (v1.2.0)
+## 🛠 Recent updates & fixes (v1.3.0)
+
+### 1. Subfolders and RAPIID Output
+*   **Feature**: **Open folder** now finds images in subfolders as well, so a RAPIID output folder, which keeps each specimen in its own folder, can be opened directly. Hidden folders are skipped.
+*   **Saved progress**: Images are tracked by their path within the folder, so files with the same name in different subfolders can't be confused. Sessions saved by earlier versions still resume.
+
+### 2. Label Images Only
+*   **Feature**: Only images with "label" in the filename are loaded, so RAPIID whole-specimen photos aren't sent to Gemini. The message shown on opening a folder says how many images were skipped.
+*   **Other folders**: If no filename in the folder contains "label", every image is loaded as before.
+
+---
+
+## 🛠 Earlier updates & fixes (v1.2.0)
 
 ### 1. Save and Resume Runs
 *   **Feature**: Opening a folder saves progress automatically in a hidden `.chrysalis` folder next to the images. If the browser closes or restarts, reopen the folder and results, edits and review status come back without sending anything to Gemini again.
