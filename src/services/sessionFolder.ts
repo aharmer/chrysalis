@@ -11,6 +11,11 @@ const META_DIR = '.chrysalis';
 const SESSION_FILE = 'session.json';
 const SCHEMA_VERSION = 1;
 const IMAGE_EXTENSIONS = /\.(jpe?g|png|webp|bmp|gif)$/i;
+/**
+ * Only label images are sent to Gemini. RAPIID names label shots "_label" or "_label_N", and renamed
+ * cameras after the camera ("_whole_specimen"), so the filename is the only reliable signal.
+ */
+const LABEL_NAME = /label/i;
 const STATUSES: SpecimenRecord['status'][] = ['pending', 'processing', 'success', 'error'];
 
 const SAVE_DELAY_MS = 500;
@@ -42,6 +47,10 @@ export interface OpenedSession {
   /** Saved results whose image is no longer in the folder. Kept in the file, not shown. */
   orphans: SavedRecord[];
   removed: string[];
+  /** Images left out because their filename doesn't contain "label", such as RAPIID whole-specimen shots. */
+  skippedNotLabel: number;
+  /** True when no filename contained "label" (not a RAPIID folder), so every image was loaded. */
+  noLabelNames: boolean;
 }
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
@@ -112,7 +121,11 @@ export async function openSession(
   const session = await readSessionFile(root);
   const removed = new Set(session?.removed ?? []);
   const saved = new Map((session?.records ?? []).map(r => [savedKey(r), r]));
-  const images = (await listImages(root)).filter(image => !removed.has(image.path));
+  const all = await listImages(root);
+  // Decided before removals, so deleting every label image can't switch the folder over to sending everything.
+  const labelled = all.filter(image => LABEL_NAME.test(image.handle.name));
+  const noLabelNames = labelled.length === 0;
+  const images = (noLabelNames ? all : labelled).filter(image => !removed.has(image.path));
 
   const records = await Promise.all(images.map(async ({ path, handle }) => {
     const record: SpecimenRecord = { ...createRecord(handle.name, URL.createObjectURL(await handle.getFile())), path };
@@ -134,7 +147,14 @@ export async function openSession(
     } satisfies SpecimenRecord;
   }));
 
-  return { records, settings: session?.settings ?? null, orphans: [...saved.values()], removed: [...removed] };
+  return {
+    records,
+    settings: session?.settings ?? null,
+    orphans: [...saved.values()],
+    removed: [...removed],
+    skippedNotLabel: all.length - (noLabelNames ? all : labelled).length,
+    noLabelNames,
+  };
 }
 
 /**

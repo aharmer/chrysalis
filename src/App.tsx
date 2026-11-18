@@ -161,12 +161,16 @@ const App: React.FC = () => {
       setFolder(handle);
       setSaveError(null);
 
+      const notes: string[] = [];
       if (opened.settings) {
         const done = opened.records.filter(r => r.status === 'success').length;
         const pending = opened.records.filter(needsProcessing).length;
-        const setAside = opened.orphans.length > 0 ? ` ${opened.orphans.length} saved result(s) have no matching image in this folder and were set aside.` : '';
-        setFolderNotice({ tone: 'info', text: `Resumed: ${done} of ${opened.records.length} images have results.${pending > 0 ? ` Click Run to process the other ${pending}.` : ''}${setAside}` });
+        notes.push(`Resumed: ${done} of ${opened.records.length} images have results.${pending > 0 ? ` Click Run to process the other ${pending}.` : ''}`);
       }
+      if (opened.skippedNotLabel > 0) notes.push(`Skipped ${opened.skippedNotLabel} image(s) without "label" in the filename, such as whole-specimen photos.`);
+      if (opened.noLabelNames) notes.push(`No filenames contain "label", so all ${opened.records.length} image(s) were loaded.`);
+      if (opened.orphans.length > 0) notes.push(`${opened.orphans.length} saved result(s) aren't shown because the image is missing or isn't a label image.`);
+      if (notes.length > 0) setFolderNotice({ tone: 'info', text: notes.join(' ') });
 
       await rememberFolder(handle);
       setRecentFolders(await listRecentFolders());
