@@ -4,7 +4,8 @@ import { EntomologicalData, SpecimenRecord } from '@/types';
 //
 //   .chrysalis/session.json     every record's status, extracted data and review state
 //
-// Images are never copied. They are read back from the folder and matched to records by filename.
+// Images are never copied. They are read back from the folder and its subfolders, and matched to records
+// by their path within the folder.
 
 const META_DIR = '.chrysalis';
 const SESSION_FILE = 'session.json';
@@ -17,7 +18,7 @@ const SAVE_RETRY_MS = 5000;
 const WRITE_ATTEMPTS = 3;
 const WRITE_RETRY_DELAY_MS = 250;
 
-type SavedRecord = Pick<SpecimenRecord, 'filename' | 'status' | 'errorMsg' | 'reviewed' | 'data' | 'rawText' | 'confidence'>;
+type SavedRecord = Pick<SpecimenRecord, 'filename' | 'path' | 'status' | 'errorMsg' | 'reviewed' | 'data' | 'rawText' | 'confidence'>;
 
 /** Saved so that the rest of a resumed run uses the same prompt as the part already done. */
 export interface SessionSettings {
@@ -31,7 +32,7 @@ interface SessionFile {
   savedAt: string;
   settings: SessionSettings;
   records: SavedRecord[];
-  /** Filenames deleted from the list, so reopening the folder doesn't queue them for Gemini again. */
+  /** Paths deleted from the list, so reopening the folder doesn't queue them for Gemini again. */
   removed: string[];
 }
 
@@ -85,6 +86,24 @@ async function readSessionFile(root: FileSystemDirectoryHandle): Promise<Session
   return parsed;
 }
 
+/** Sessions saved before subfolders were read only hold top-level images, whose path is their filename. */
+const savedKey = (r: SavedRecord) => r.path ?? r.filename;
+
+/**
+ * Every image in the folder and its subfolders, sorted by path. RAPIID saves each specimen in its own
+ * folder (Taxon/Accession/Accession_label.jpg). Hidden folders such as .chrysalis are skipped.
+ */
+async function listImages(dir: FileSystemDirectoryHandle, prefix = ''): Promise<{ path: string; handle: FileSystemFileHandle }[]> {
+  const found: { path: string; handle: FileSystemFileHandle }[] = [];
+  for await (const entry of dir.values()) {
+    if (entry.name.startsWith('.')) continue;
+    const path = prefix + entry.name;
+    if (entry.kind === 'directory') found.push(...await listImages(entry, `${path}/`));
+    else if (IMAGE_EXTENSIONS.test(entry.name)) found.push({ path, handle: entry });
+  }
+  return prefix ? found : found.sort((a, b) => collator.compare(a.path, b.path));
+}
+
 /** Lists the images in a folder and merges in whatever was saved for them. */
 export async function openSession(
   root: FileSystemDirectoryHandle,
@@ -92,18 +111,13 @@ export async function openSession(
 ): Promise<OpenedSession> {
   const session = await readSessionFile(root);
   const removed = new Set(session?.removed ?? []);
-  const saved = new Map((session?.records ?? []).map(r => [r.filename, r]));
+  const saved = new Map((session?.records ?? []).map(r => [savedKey(r), r]));
+  const images = (await listImages(root)).filter(image => !removed.has(image.path));
 
-  const handles: FileSystemFileHandle[] = [];
-  for await (const entry of root.values()) {
-    if (entry.kind === 'file' && IMAGE_EXTENSIONS.test(entry.name) && !removed.has(entry.name)) handles.push(entry);
-  }
-  handles.sort((a, b) => collator.compare(a.name, b.name));
-
-  const records = await Promise.all(handles.map(async handle => {
-    const record = createRecord(handle.name, URL.createObjectURL(await handle.getFile()));
-    const previous = saved.get(handle.name);
-    saved.delete(handle.name);
+  const records = await Promise.all(images.map(async ({ path, handle }) => {
+    const record: SpecimenRecord = { ...createRecord(handle.name, URL.createObjectURL(await handle.getFile())), path };
+    const previous = saved.get(path);
+    saved.delete(path);
     if (!previous) return record;
 
     const status = STATUSES.includes(previous.status) ? previous.status : 'pending';
@@ -160,6 +174,7 @@ async function writeSessionFile(root: FileSystemDirectoryHandle, text: string) {
 
 const toSaved = (r: SpecimenRecord): SavedRecord => ({
   filename: r.filename,
+  path: r.path,
   status: r.status,
   errorMsg: r.errorMsg,
   reviewed: r.reviewed,
@@ -197,8 +212,8 @@ export class SessionSaver {
     this.written = JSON.stringify(this.body(records, settings));
   }
 
-  markRemoved(filename: string) {
-    this.removed.add(filename);
+  markRemoved(path: string) {
+    this.removed.add(path);
   }
 
   schedule(records: SpecimenRecord[], settings: SessionSettings) {

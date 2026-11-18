@@ -1,6 +1,8 @@
 export interface SpecimenRecord {
   id: string;
   filename: string;
+  /** Where the image is relative to the opened folder, e.g. "Taxon/NZAC123/NZAC123_label.jpg". Identifies it across sessions. */
+  path?: string;
   imageUrl: string;
   status: 'pending' | 'processing' | 'success' | 'error';
   errorMsg?: string;

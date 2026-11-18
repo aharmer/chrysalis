@@ -142,7 +142,7 @@ const App: React.FC = () => {
     try {
       const opened = await openSession(handle, createRecord);
       if (opened.records.length === 0) {
-        setFolderNotice({ tone: 'error', text: `No images found in "${handle.name}". Chrysalis looks for JPEG, PNG, WebP, BMP and GIF files directly inside the folder you choose.` });
+        setFolderNotice({ tone: 'error', text: `No images found in "${handle.name}". Chrysalis looks for JPEG, PNG, WebP, BMP and GIF files in the folder you choose and its subfolders.` });
         return;
       }
 
@@ -417,7 +417,7 @@ const App: React.FC = () => {
   const handleDeleteRecord = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     const deleted = records.find(r => r.id === id);
-    if (deleted) saverRef.current?.markRemoved(deleted.filename);
+    if (deleted) saverRef.current?.markRemoved(deleted.path ?? deleted.filename);
     setRecords(prev => {
         const next = prev.filter(r => r.id !== id);
         if (selectedRecordId === id) {
@@ -778,7 +778,7 @@ const App: React.FC = () => {
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-0.5">
-                                <span className={`text-xs font-bold truncate ${selectedRecordId === record.id ? 'text-blue-700' : 'text-slate-700'}`}>
+                                <span className={`text-xs font-bold truncate ${selectedRecordId === record.id ? 'text-blue-700' : 'text-slate-700'}`} title={record.path ?? record.filename}>
                                     {record.filename}
                                 </span>
                                 {record.reviewed && (
